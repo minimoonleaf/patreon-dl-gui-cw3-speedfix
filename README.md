@@ -50,7 +50,7 @@
 - SpeedFix integration and maintenance: [minimoonleaf](https://github.com/minimoonleaf).
 - Original copyright, MIT license, and existing attribution notices remain applicable. Retain these in redistributed versions.
 
-The remainder of this README retains and adapts the original GUI's feature and usage documentation. The original project's donation link below belongs to the original maintainer, not the SpeedFix maintainer.
+The remainder of this README retains and adapts the original project's technical documentation.
 <!-- SPEEDFIX-FORK-INTRO-END -->
 
 ---
