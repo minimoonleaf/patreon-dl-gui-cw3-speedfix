@@ -1,4 +1,5 @@
 <a href='https://ko-fi.com/minimoonleaf' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+
 <!-- SPEEDFIX-FORK-INTRO-BEGIN -->
 # Patreon Downloader GUI — cw3 + SpeedFix
 
@@ -53,6 +54,7 @@ The remainder of this README retains and adapts the original GUI's feature and u
 <!-- SPEEDFIX-FORK-INTRO-END -->
 
 ---
+
 
 ## Original GUI project documentation
 An Electron app that provides a GUI for [patreon-dl SpeedFix Core](https://github.com/minimoonleaf/patreon-dl-core-speedfix).
