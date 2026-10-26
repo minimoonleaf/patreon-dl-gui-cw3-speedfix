@@ -1,8 +1,62 @@
+<!-- SPEEDFIX-FORK-INTRO-BEGIN -->
+# Patreon Downloader GUI — cw3 + SpeedFix
+
+**GUI `2.10.3-cw3` · SpeedFix `v2.5.5` · Core `3.9.0-speedfix.255` · Windows x64 installer**
+
+[**Download the latest release (MSI)**](https://github.com/minimoonleaf/patreon-dl-gui-cw3-speedfix/releases/latest) · [**All releases**](https://github.com/minimoonleaf/patreon-dl-gui-cw3-speedfix/releases) · [**SpeedFix Core**](https://github.com/minimoonleaf/patreon-dl-core-speedfix) · [**cw3 details**](./README-cw3.md) · [**cw3 日本語説明**](./README-cw3_jp.md)
+
+> **Unofficial community fork.** This is not an official release by Patrick Kan or Moe Haduki. It combines the original Patreon Downloader GUI, community cw3 URL-handling improvements, and SpeedFix downloader optimizations.
+
+## What's included? (English)
+
+- **cw3 Patreon URL handling:** Improves recognition of creator and individual-post URLs following Patreon site changes. Includes the cw3 `custom-rules.json` mechanism for additional URL prefixes; see [cw3 documentation](./README-cw3.md).
+- **Fast Skip:** Reduces unnecessary per-post API refreshes for posts validated as unchanged by the existing status cache and available API metadata.
+- **Optimized Core:** Uses SpeedFix Core `3.9.0-speedfix.255`, with up to four concurrent preparation workers, paced/cached HEAD requests, and adaptive HTTP 429 handling.
+- **Improved download log window:** Offers an enhanced log view and reopening through **View → Show Download Log** (`Ctrl+Shift+L`) without intentionally stopping an active download.
+- **Export Download Log:** Saves diagnostic log output to a UTF-8 text file for troubleshooting.
+- **Performance diagnostics:** Includes Fast Skip counts, page wall times, preparation statistics, and other download performance information.
+
+### Installation (Windows x64)
+
+1. Open the [GitHub Releases page](https://github.com/minimoonleaf/patreon-dl-gui-cw3-speedfix/releases).
+2. Download the **Windows x64 `.msi` installer** attached to the intended release. The generated **Source code** archives are *not* Windows installers.
+3. Install the app and follow the original GUI usage guide below. FFmpeg is recommended for video downloads; yt-dlp and Deno may be needed for particular embed downloaders.
+
+**Source/build note:** This GUI's `package.json` depends on `file:vendor/patreon-dl-3.9.0-speedfix.255.tgz`. Because the prebuilt Core tarball is not included in the source repository, build and `npm pack` the [SpeedFix Core](https://github.com/minimoonleaf/patreon-dl-core-speedfix) **before** installing GUI dependencies. See [Building this fork from source](#running--packaging-the-app-from-source) below.
+
+**Versioning:** The ongoing GUI branch is `cw3-speedfix`; [`v2.5.5-cw3-speedfix`](https://github.com/minimoonleaf/patreon-dl-gui-cw3-speedfix/tree/v2.5.5-cw3-speedfix) identifies this released source. The internal `package.json` version remains `2.10.3` for packaging compatibility; it is not the SpeedFix feature version.
+
+## 繁體中文說明
+
+這是整合 **Patrick Kan 原始 GUI、Moe Haduki 的 cw3 修正，以及 SpeedFix v2.5.5** 的社群維護版本，並搭配 `3.9.0-speedfix.255` 核心。
+
+- **cw3 URL 辨識：** 改善 Patreon 創作者及單篇貼文的網址辨識，並支援 `custom-rules.json` 自訂網址前綴規則。
+- **Fast Skip：** 在狀態快取及 API 資料符合驗證條件時，減少不必要的逐篇重新請求。
+- **下載最佳化：** 加速下載前的任務準備、HEAD 快取與節流，並加入 HTTP 429 防護。
+- **下載 Log：** 改善日誌視窗，可以透過 **View → Show Download Log**（`Ctrl+Shift+L`）重新開啟；支援匯出 UTF-8 日誌。
+- **效能診斷：** 顯示跳過統計、分頁處理耗時及下載準備資訊。
+
+**Windows 安裝：** 請到 [Releases](https://github.com/minimoonleaf/patreon-dl-gui-cw3-speedfix/releases) 下載附加的 `.msi` 安裝檔。GitHub 自動產生的 Source code ZIP 並不是安裝程式。
+
+**自行編譯：** 需先編譯並封裝 [SpeedFix Core](https://github.com/minimoonleaf/patreon-dl-core-speedfix)，將 `.tgz` 放入 GUI 的 `vendor` 資料夾後，才能安裝 GUI 的相依套件。
+
+## Credits / 授權與致謝
+
+- Original GUI and Core: [Patrick Kan (@patrickkfkan)](https://github.com/patrickkfkan/patreon-dl-gui), [Core upstream](https://github.com/patrickkfkan/patreon-dl).
+- cw3 custom build and URL-rule improvements: [Moe Haduki (@hadukimoe)](https://github.com/patrickkfkan/patreon-dl-gui/issues/85). The original [cw3 documentation](./README-cw3.md) and [Japanese documentation](./README-cw3_jp.md) are retained.
+- Earlier URL-fix contributions credited in cw3 documentation: [@tiansun2](https://github.com/tiansun2), [@ma7m0d999](https://github.com/ma7m0d999).
+- SpeedFix integration and maintenance: [minimoonleaf](https://github.com/minimoonleaf).
+- Original copyright, MIT license, and existing attribution notices remain applicable. Retain these in redistributed versions.
+
+The remainder of this README retains and adapts the original GUI's feature and usage documentation. The original project's donation link below belongs to the original maintainer, not the SpeedFix maintainer.
+<!-- SPEEDFIX-FORK-INTRO-END -->
+
+---
+
 <a href='https://ko-fi.com/C0C5RGOOP' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
 
-# patreon-dl-gui
-
-An Electron app that provides a GUI for [patreon-dl](https://github.com/patrickkfkan/patreon-dl).
+## Original GUI project documentation
+An Electron app that provides a GUI for [patreon-dl SpeedFix Core](https://github.com/minimoonleaf/patreon-dl-core-speedfix).
 
 ## Features
 
@@ -26,7 +80,7 @@ An Electron app that provides a GUI for [patreon-dl](https://github.com/patrickk
 
 ## Installation
 
-[Download](https://github.com/patrickkfkan/patreon-dl-gui/releases) and install the package suitable for your system. Linux (RPM and DEB) and Windows x64 versions are provided. If you are on a different system, you may [run or package the app from source](#running--packaging-the-app-from-source).
+Download the Windows x64 `.msi` installer from the [SpeedFix Releases](https://github.com/minimoonleaf/patreon-dl-gui-cw3-speedfix/releases) page. For other operating systems, you may [build the app from source](#running--packaging-the-app-from-source), provided that the required build tools and dependencies are available.
 
 #### FFmpeg
 
@@ -126,31 +180,54 @@ The following table lists the version of `patreon-dl` used by each version of `p
 | v2.8.0                   | v3.7.1                    |
 | v2.9.0                   | v3.8.1                    |
 | v2.10.0                  | v3.9.0                    |
+| v2.10.3-cw3 + SpeedFix v2.5.5 | v3.9.0-speedfix.255 |
 
 ## Running / packaging the app from source
 
-You need [Node JS](https://nodejs.org) v22.12.0 or higher.
+Use [Node.js](https://nodejs.org) v22.12.0 or higher. The SpeedFix GUI requires **SpeedFix Core `3.9.0-speedfix.255`**, provided as a local tarball. The `.tgz` is intentionally not committed to this GUI source repository.
 
-To run in dev mode:
+Clone and build Core first:
 
-```
-$ git clone https://github.com/patrickkfkan/patreon-dl-gui.git
-$ cd patreon-dl-gui
-$ npm i
-$ npm run start
-
-// To start the server console
-$ npm run start -- -- --server-console
-```
-
-To package the app for your OS:
-
-```
-$ npm run make
+```sh
+git clone https://github.com/minimoonleaf/patreon-dl-core-speedfix.git
+cd patreon-dl-core-speedfix
+git switch speedfix
+npm install
+npm run build
+cd ..
 ```
 
-## Changelog
+Clone the GUI beside the Core folder, create its `vendor` directory, then pack Core into it:
 
+```sh
+git clone https://github.com/minimoonleaf/patreon-dl-gui-cw3-speedfix.git
+cd patreon-dl-gui-cw3-speedfix
+git switch cw3-speedfix
+mkdir vendor
+cd ../patreon-dl-core-speedfix
+npm pack --pack-destination ../patreon-dl-gui-cw3-speedfix/vendor
+cd ../patreon-dl-gui-cw3-speedfix
+npm install --allow-git=all
+npm run start
+```
+
+`npm install` must find `vendor/patreon-dl-3.9.0-speedfix.255.tgz` as referenced by `package.json`. If your `vendor` directory already exists, skip the `mkdir vendor` line. Verify the installed Core version with:
+
+```sh
+node -p "require('./node_modules/patreon-dl/package.json').version"
+```
+
+To start the server console instead, run `npm run start -- -- --server-console`.
+
+To build a Windows installer on a configured Windows development machine with WiX Toolset available:
+
+```sh
+npm run make
+```
+
+The `out/make/` directory should contain the generated installer when packaging succeeds. Test the installer before publishing a GitHub Release. Linux/macOS packaging requires their corresponding tooling; this fork's published MSI is for Windows x64.
+
+## Upstream changelog (official project)
 v2.10.0
 - Update `patreon-dl` library to v3.9.0 ([changelog](https://github.com/patrickkfkan/patreon-dl/blob/f35991806e4c14a449b8822e1286282c00c9a91a/CHANGELOG.md)).
 - Add support for `media.index` in media filename format ([#60](https://github.com/patrickkfkan/patreon-dl-gui/issues/60)).
