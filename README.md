@@ -1,5 +1,3 @@
-<a href='https://ko-fi.com/minimoonleaf' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
-
 <!-- SPEEDFIX-FORK-INTRO-BEGIN -->
 # Patreon Downloader GUI — cw3 + SpeedFix
 
@@ -49,6 +47,9 @@
 - Earlier URL-fix contributions credited in cw3 documentation: [@tiansun2](https://github.com/tiansun2), [@ma7m0d999](https://github.com/ma7m0d999).
 - SpeedFix integration and maintenance: [minimoonleaf](https://github.com/minimoonleaf).
 - Original copyright, MIT license, and existing attribution notices remain applicable. Retain these in redistributed versions.
+
+
+<a href='https://ko-fi.com/minimoonleaf' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
 
 The remainder of this README retains and adapts the original project's technical documentation.
 <!-- SPEEDFIX-FORK-INTRO-END -->
