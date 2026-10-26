@@ -75,3 +75,11 @@
 .help-modal-body ul {
   padding-left: 1.5rem;
 }
+
+/* v2.5.4: wider but still responsive downloadable log window. */
+@media (min-width: 992px) {
+  .speedfix-log-modal {
+    --bs-modal-width: min(1600px, 94vw);
+    max-width: min(1600px, 94vw);
+  }
+}

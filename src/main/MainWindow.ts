@@ -32,12 +32,12 @@ interface WebBrowserViewEntry {
 
 export type ApplyProxyResult =
   | {
-      status: "success";
-    }
+    status: "success";
+  }
   | {
-      status: "error";
-      error: string;
-    };
+    status: "error";
+    error: string;
+  };
 
 export default class MainWindow extends BaseWindow {
   editorView: EditorView;
@@ -98,6 +98,13 @@ export default class MainWindow extends BaseWindow {
       this.#emitStateChangeEvent();
     });
 
+    // SpeedFix v2.5.1: reassert the already-open modal when returning to the app.
+    this.on("focus", () => {
+      if (this.contentView.children.includes(this.modalView)) {
+        this.contentView.addChildView(this.modalView);
+      }
+    });
+
     this.on("minimize", () => {
       this.#emitStateChangeEvent();
     });
@@ -128,6 +135,9 @@ export default class MainWindow extends BaseWindow {
       editor.config.downloader.target.manualValue.trim() ||
       this.#initialWebBrowserProps.url;
     const newWebBrowserView = new WebBrowserView(partition);
+
+    newWebBrowserView.setDestinationDir(editor.config.output["out.dir"]);
+
     const newWebBrowserViewEntry: WebBrowserViewEntry = {
       navInfo: {
         url,
@@ -181,7 +191,7 @@ export default class MainWindow extends BaseWindow {
       (currentProxyURL === "" && proxyURL === "") ||
       (currentProxyURL === proxyURL &&
         editor.config.request["proxy.reject.unauthorized.tls"] ===
-          view?.proxy?.rejectUnauthorizedTLS)
+        view?.proxy?.rejectUnauthorizedTLS)
     ) {
       return;
     }
@@ -220,12 +230,18 @@ export default class MainWindow extends BaseWindow {
       return;
     }
     newActiveEntry.active = true;
+    newActiveEntry.view.setDestinationDir(editor?.config?.output?.["out.dir"]);
     this.emitWebBrowserViewEvent("pageNavigated", newActiveEntry.navInfo);
     if (currentActiveEntry) {
       currentActiveEntry.active = false;
       this.contentView.removeChildView(currentActiveEntry.view);
     }
     this.contentView.addChildView(newActiveEntry.view);
+    // SpeedFix v2.5.1: preserve modal stacking when switching editor tabs.
+    // Only reorder an already-attached modal. Never open a hidden modal.
+    if (this.contentView.children.includes(this.modalView)) {
+      this.contentView.addChildView(this.modalView);
+    }
   }
 
   async removeWebBrowserViewForEditor(editor: Editor) {
@@ -259,11 +275,15 @@ export default class MainWindow extends BaseWindow {
   }
 
   showModalView() {
+    // v2.5.4: show/reopen the existing renderer, preserving its log history.
+    // Adding an attached child again also restores it to the top of the stack.
     this.contentView.addChildView(this.modalView);
   }
 
   hideModalView() {
-    this.contentView.removeChildView(this.modalView);
+    if (this.contentView.children.includes(this.modalView)) {
+      this.contentView.removeChildView(this.modalView);
+    }
   }
 
   setUserAgent(userAgent: string) {
@@ -315,8 +335,8 @@ export default class MainWindow extends BaseWindow {
       editorPanelWidth: this.#editorPanelWidth,
       state:
         this.isMaximized() ? "maximized"
-        : this.isMinimized() ? "minimized"
-        : "normal"
+          : this.isMinimized() ? "minimized"
+            : "normal"
     };
   }
 

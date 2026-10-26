@@ -22,6 +22,7 @@ export type MainProcessRendererEvent =
   | "downloaderStart"
   | "downloaderEnd"
   | "downloaderLogMessage"
+  | "showDownloadLog"
   | "execUICommand"
   | "requestHelpResult"
   | "aboutInfo"
@@ -65,6 +66,7 @@ export type UICommand =
 export interface AboutInfo {
   appName: string;
   appVersion: string;
+  coreVersion: string;
   appURL: string;
 }
 
@@ -176,6 +178,7 @@ export type MainProcessRendererEventListener<
   : E extends "downloaderStart" ? () => void
   : E extends "downloaderEnd" ? (info: DownloaderEndInfo) => void
   : E extends "downloaderLogMessage" ? (message: DownloaderLogMessage) => void
+  : E extends "showDownloadLog" ? () => void
   : E extends "requestHelpResult" ? (result: RequestHelpResult) => void
   : E extends "execUICommand" ?
     <C extends UICommand>(command: C, ...params: ExecUICommandParams<C>) => void

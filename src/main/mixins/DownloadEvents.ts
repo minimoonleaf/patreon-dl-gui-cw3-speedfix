@@ -3,7 +3,9 @@ import { convertUIConfigToPatreonDLOptions } from "../Downloader";
 import type { DownloaderBundle, MainProcessConstructor } from "../MainProcess";
 import type { Editor } from "../types/App";
 import ObjectHelper from "../util/ObjectHelper";
-import { dialog } from "electron";
+import { app, dialog } from "electron";
+import { writeFile } from "node:fs/promises";
+import path from "node:path";
 import _ from "lodash";
 import { getErrorString } from "../../common/util/Misc";
 
@@ -17,14 +19,20 @@ export function DownloadEventSupportMixin<TBase extends MainProcessConstructor>(
       const callbacks = super.registerMainEventListeners();
       return [
         ...callbacks,
+        // v2.5.4: keep closing functional after reopening the log multiple times.
+        this.on("downloaderModalClose", () => this.win.hideModalView()),
 
         this.handle("startDownload", (editor: Editor) => {
+          // Hiding the log must never let the user replace a running downloader.
+          if (this.downloader) {
+            this.showDownloadLog();
+            return Promise.resolve();
+          }
           return new Promise<void>((resolve) => {
             (async () => {
               this.on(
                 "downloaderModalClose",
                 () => {
-                  this.win.hideModalView();
                   resolve();
                 },
                 { once: true }
@@ -63,6 +71,8 @@ export function DownloadEventSupportMixin<TBase extends MainProcessConstructor>(
                 };
                 const dlConfig = this.downloader.instance.getConfig();
 
+                this.downloadLogAvailable = true;
+                this.setAppMenu();
                 this.emitRendererEvent(this.win.modalView, "downloaderInit", {
                   hasError: false,
                   downloaderConfig: ObjectHelper.clean(
@@ -93,6 +103,8 @@ export function DownloadEventSupportMixin<TBase extends MainProcessConstructor>(
               } catch (error: unknown) {
                 const errMsg = getErrorString(error);
                 this.downloader = null;
+                this.downloadLogAvailable = true;
+                this.setAppMenu();
                 this.emitRendererEvent(this.win.modalView, "downloaderInit", {
                   hasError: true,
                   error: `Error: ${errMsg}`
@@ -100,6 +112,33 @@ export function DownloadEventSupportMixin<TBase extends MainProcessConstructor>(
               }
             })();
           });
+        }),
+
+        // v2.5.5: export in-memory log from the separate modal renderer.
+        // The user chooses the destination; exporting never interrupts the downloader.
+        this.handle("exportDownloadLog", async (text: string) => {
+          if (typeof text !== "string" || !text.length || text.length > 36 * 1024 * 1024) {
+            return { saved: false, canceled: false, error: "Invalid or empty log contents" };
+          }
+          const now = new Date();
+          const two = (value: number) => String(value).padStart(2, "0");
+          const stamp = `${now.getFullYear()}${two(now.getMonth() + 1)}${two(now.getDate())}-${two(now.getHours())}${two(now.getMinutes())}${two(now.getSeconds())}`;
+          const result = await dialog.showSaveDialog(this.win, {
+            title: "Save Download Log",
+            defaultPath: path.join(app.getPath("downloads"), `patreon-dl-log-${stamp}.txt`),
+            filters: [
+              { name: "Text Log", extensions: ["txt"] },
+              { name: "Log File", extensions: ["log"] }
+            ]
+          });
+          if (result.canceled || !result.filePath) return { saved: false, canceled: true };
+          try {
+            // Unicode text is saved as UTF-8 with Windows-compatible line endings.
+            await writeFile(result.filePath, text.replace(/\r?\n/g, "\r\n"), "utf8");
+            return { saved: true, canceled: false };
+          } catch (error: unknown) {
+            return { saved: false, canceled: false, error: getErrorString(error) };
+          }
         }),
 
         this.handle("abortDownload", () => {

@@ -20,6 +20,7 @@ export default defineConfig((env) => {
   }
   return {
     root: path.resolve(__dirname, srcRoot),
+    cacheDir: path.resolve(__dirname, `node_modules/.vite/${rendererName}`),
     plugins: [react()],
     build: {
       outDir: path.resolve(__dirname, `.vite/renderer/${rendererName}`)

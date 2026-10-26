@@ -9,6 +9,23 @@ import {
 } from "../config/WebBrowserSettings";
 import { getErrorString } from "../../common/util/Misc";
 import { resetDefaultConfig, saveDefaultConfig } from "../config/DefaultConfig";
+import packageJson from "../../../package.json";
+import { readFileSync } from "fs";
+import path from "path";
+
+/** Read the version of the core actually installed, in both dev and MSI builds. */
+function readPatreonDLCoreVersion(): string {
+  const packagePath = app.isPackaged
+    ? path.join(process.resourcesPath, "node_modules", "patreon-dl", "package.json")
+    : path.join(app.getAppPath(), "node_modules", "patreon-dl", "package.json");
+
+  try {
+    const corePackage = JSON.parse(readFileSync(packagePath, "utf8")) as { version?: unknown };
+    return typeof corePackage.version === "string" ? corePackage.version : "Unknown";
+  } catch {
+    return "Unavailable";
+  }
+}
 
 export function SupportEventSupportMixin<TBase extends MainProcessConstructor>(
   Base: TBase
@@ -90,9 +107,26 @@ export function SupportEventSupportMixin<TBase extends MainProcessConstructor>(
               { once: true }
             );
             this.win.showModalView();
+
+            const pkg = packageJson as {
+              customName?: string;
+              customEdition?: string;
+            };
+
+            const baseName = app.getName();
+            const rawCustomName = pkg.customName;
+            const customName = rawCustomName ? ` (${rawCustomName})` : "";
+            const extendedAppName = `${baseName}${customName}`;
+
+            const baseVersion = app.getVersion();
+            const rawCustomEdition = pkg.customEdition;
+            const customEdition = rawCustomEdition ? `-${rawCustomEdition}` : "";
+            const extendedVersion = `${baseVersion}${customEdition}`;
+
             this.emitRendererEvent(this.win.modalView, "aboutInfo", {
-              appName: app.getName(),
-              appVersion: app.getVersion(),
+              appName: extendedAppName,
+              appVersion: extendedVersion,
+              coreVersion: readPatreonDLCoreVersion(),
               appURL: APP_URL
             });
           });

@@ -8,7 +8,11 @@ import type { JSX } from "react";
 import { Button, Modal } from "react-bootstrap";
 import ReactDOMServer from "react-dom/server";
 
-const MAX_MESSAGES = 1000;
+// Keep a bounded in-memory history so hiding and reopening never loses the log.
+// The on-screen log remains limited to 3,000 entries. The export buffer is
+// independent, up to 32 MiB, to retain earlier messages from this run.
+const MAX_MESSAGES = 3000;
+const MAX_EXPORT_CHARS = 32 * 1024 * 1024;
 
 type DownloaderState =
   | {
@@ -39,6 +43,11 @@ interface ContentsScrollParams {
 function DownloaderModal() {
   const [state, setState] = useState<DownloaderState | null>(null);
   const [show, setShow] = useState(false);
+  const manuallyHiddenRef = useRef(false);
+  const historyRef = useRef<string[]>([]);
+  const exportHistoryRef = useRef<string[]>([]);
+  const exportCharsRef = useRef(0);
+  const exportDroppedRef = useRef(0);
   const contentsBufferRef = useRef("");
   const contentsFlushTimerRef = useRef<NodeJS.Timeout>(null);
   const contentsElRef = useRef<HTMLDivElement>(null);
@@ -46,27 +55,20 @@ function DownloaderModal() {
     autoScroll: true,
     ignoreNextScroll: false
   });
-  const messagesDisplayedCountRef = useRef(0);
-
   const flushContentsBuffer = useCallback(() => {
     const contentsEl = contentsElRef.current;
-    if (contentsEl) {
-      contentsEl.innerHTML += contentsBufferRef.current;
-      contentsBufferRef.current = "";
-      if (messagesDisplayedCountRef.current > MAX_MESSAGES) {
-        for (
-          let i = 0;
-          i < messagesDisplayedCountRef.current - MAX_MESSAGES;
-          i++
-        ) {
-          contentsEl.firstChild?.remove();
-        }
-        messagesDisplayedCountRef.current = MAX_MESSAGES;
+    if (contentsEl && contentsBufferRef.current) {
+      // v2.5.4: incremental append avoids reparsing all previous messages.
+      contentsEl.insertAdjacentHTML("beforeend", contentsBufferRef.current);
+      while (contentsEl.childElementCount > MAX_MESSAGES) {
+        contentsEl.firstElementChild?.remove();
       }
       if (contentsScrollParamsRef.current.autoScroll) {
         contentsEl.scrollTop = contentsEl.scrollHeight;
       }
     }
+    // Messages already live in historyRef; do not grow an invisible HTML buffer.
+    contentsBufferRef.current = "";
   }, []);
 
   const clearContentsFlushTimer = useCallback(() => {
@@ -113,19 +115,70 @@ function DownloaderModal() {
       }
       if (!append) {
         contentsBufferRef.current = "";
-        if (contentsElRef.current) {
-          contentsElRef.current.innerHTML = "";
-        }
-        messagesDisplayedCountRef.current = 0;
+        historyRef.current = [];
+        exportHistoryRef.current = [];
+        exportCharsRef.current = 0;
+        exportDroppedRef.current = 0;
+        if (contentsElRef.current) contentsElRef.current.innerHTML = "";
       }
       if (content) {
-        contentsBufferRef.current += `<div>${content}</div>`;
-        messagesDisplayedCountRef.current++;
+        const entry = `<div>${content}</div>`;
+        // v2.5.5: keep an independent export history (not limited by UI rows).
+        const exportEntry = content.slice(-MAX_EXPORT_CHARS);
+        exportHistoryRef.current.push(exportEntry);
+        exportCharsRef.current += exportEntry.length;
+        if (exportEntry.length < content.length) exportDroppedRef.current++;
+        while (exportCharsRef.current > MAX_EXPORT_CHARS && exportHistoryRef.current.length > 1) {
+          const removed = exportHistoryRef.current.shift();
+          if (removed !== undefined) exportCharsRef.current -= removed.length;
+          exportDroppedRef.current++;
+        }
+        historyRef.current.push(entry);
+        if (historyRef.current.length > MAX_MESSAGES) {
+          historyRef.current.splice(0, historyRef.current.length - MAX_MESSAGES);
+        }
+        if (contentsElRef.current) contentsBufferRef.current += entry;
       }
       startContentsFlushTimer();
     },
     [clearContentsFlushTimer, startContentsFlushTimer]
   );
+
+  // Stable ref: do not reconstruct the entire log on unrelated React re-renders.
+  const attachContentsEl = useCallback((node: HTMLDivElement | null) => {
+    contentsElRef.current = node;
+    if (node) {
+      // React-Bootstrap unmounts Modal.Body after hiding; restore retained history.
+      node.innerHTML = historyRef.current.join("");
+      contentsBufferRef.current = "";
+      if (contentsScrollParamsRef.current.autoScroll) {
+        node.scrollTop = node.scrollHeight;
+      }
+    }
+  }, []);
+
+  const downloadLog = useCallback(async () => {
+    const snapshot = exportHistoryRef.current.slice();
+    if (!snapshot.length) return;
+    // Convert existing rendered message HTML into plain text. No styles or tags
+    // are included in the saved file; timestamps and log details stay intact.
+    const scratch = document.createElement("div");
+    const lines = snapshot.map((html) => {
+      scratch.innerHTML = html;
+      return scratch.textContent ?? "";
+    });
+    if (exportDroppedRef.current) {
+      lines.unshift(`[SpeedFix] Older ${exportDroppedRef.current} message(s) omitted: in-memory export limit reached (32 MiB). Enable File logger for unbounded history.`);
+    }
+    try {
+      const result = await window.mainAPI.invoke("exportDownloadLog", lines.join("\r\n") + "\r\n");
+      if (!result.saved && !result.canceled) {
+        window.alert(`Could not save download log: ${result.error || "Unknown error"}`);
+      }
+    } catch (error) {
+      window.alert(`Could not save download log: ${String(error)}`);
+    }
+  }, []);
 
   const clearMessages = useCallback(() => {
     updateContents("string", "");
@@ -143,6 +196,7 @@ function DownloaderModal() {
   }, []);
 
   const close = useCallback(() => {
+    manuallyHiddenRef.current = true;
     setShow(false);
   }, []);
 
@@ -165,6 +219,7 @@ function DownloaderModal() {
   useEffect(() => {
     const removeListenerCallbacks = [
       window.mainAPI.on("downloaderInit", (info) => {
+        manuallyHiddenRef.current = false;
         contentsScrollParamsRef.current.autoScroll = false;
         if (info.hasError) {
           updateContents("string", info.error);
@@ -193,7 +248,7 @@ function DownloaderModal() {
         setState({
           status: "running"
         });
-        setShow(true);
+        if (!manuallyHiddenRef.current) setShow(true);
       }),
       window.mainAPI.on("downloaderEnd", (info) => {
         clearContentsFlushTimer();
@@ -213,10 +268,14 @@ function DownloaderModal() {
           status: "end",
           info
         });
-        setShow(true);
+        if (!manuallyHiddenRef.current) setShow(true);
       }),
       window.mainAPI.on("downloaderLogMessage", (message) => {
         updateContents("log", message, true);
+      }),
+      window.mainAPI.on("showDownloadLog", () => {
+        manuallyHiddenRef.current = false;
+        setShow(true);
       })
     ];
 
@@ -271,6 +330,17 @@ function DownloaderModal() {
           size="sm"
           variant="dark"
           className="rounded me-2"
+          title="Save this session's download log as a UTF-8 text file"
+          onClick={downloadLog}
+          aria-label="Download Log"
+        >
+          <span className="material-symbols-outlined" style={{ lineHeight: "inherit" }}>download</span>
+          <span className="ms-1">Download Log</span>
+        </Button>
+        <Button
+          size="sm"
+          variant="dark"
+          className="rounded me-2"
           title="Wrap text"
           onClick={wrapText}
           aria-label="Wrap text"
@@ -299,7 +369,7 @@ function DownloaderModal() {
         </Button>
       </>
     );
-  }, [state]);
+  }, [state, downloadLog]);
 
   const footerButtons = useMemo(() => {
     if (!state) {
@@ -332,6 +402,10 @@ function DownloaderModal() {
         );
       case "running":
         return (
+          <>
+          <Button variant="secondary" className="me-2" onClick={close} aria-label="Hide Log">
+            Hide Log
+          </Button>
           <Button
             variant="danger"
             onClick={abortDownload}
@@ -339,6 +413,7 @@ function DownloaderModal() {
           >
             Abort
           </Button>
+          </>
         );
       case "end":
         return (
@@ -369,6 +444,7 @@ function DownloaderModal() {
   return (
     <>
       <Modal
+        dialogClassName="speedfix-log-modal"
         contentClassName="h-100"
         show={show}
         onHide={close}
@@ -396,12 +472,7 @@ function DownloaderModal() {
         <Modal.Body
           className="p-2 flex-grow-1 overflow-auto bg-black text-light font-monospace"
           style={{ whiteSpace: "pre" }}
-          ref={(node) => {
-            contentsElRef.current = node;
-            if (node) {
-              flushContentsBuffer();
-            }
-          }}
+          ref={attachContentsEl}
           onScroll={onContentsScroll}
         ></Modal.Body>
         <Modal.Footer className="bg-dark justify-content-center">

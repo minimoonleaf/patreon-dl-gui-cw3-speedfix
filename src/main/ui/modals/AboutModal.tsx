@@ -31,7 +31,7 @@ function AboutModal() {
     return null;
   }
 
-  const { appName, appVersion, appURL } = info;
+  const { appName, appVersion, appURL, coreVersion } = info;
 
   return (
     <>
@@ -40,6 +40,7 @@ function AboutModal() {
         <Modal.Body className="d-flex p-5 pt-0 bg-dark align-items-center flex-column">
           <div className="fs-4">{appName}</div>
           <div>v{appVersion}</div>
+          <div className="mt-2">Download Core: {coreVersion}</div>
           <div className="mt-3">
             <a
               href="#"

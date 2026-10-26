@@ -11,7 +11,7 @@ import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import fs from 'fs';
 import { execSync } from 'child_process';
-import packageJSON from './package.json' assert { type: 'json' };
+import packageJSON from './package.json' with { type: 'json' };
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -130,13 +130,27 @@ const config: ForgeConfig = {
         if (!fs.existsSync(appDir)) {
           fs.mkdirSync(appDir, { recursive: true });
         }
+        // === SpeedFix v2.4.2 source-built local core; never fetch stock patreon-dl ===
+        const coreTarball = path.join(__dirname, 'vendor/patreon-dl-3.9.0-speedfix.255.tgz');
+        if (!fs.existsSync(coreTarball)) {
+          throw new Error(`Missing source-built SpeedFix core: ${coreTarball}`);
+        }
+        const vendorDir = path.join(appDir, 'vendor');
+        fs.mkdirSync(vendorDir, { recursive: true });
+        fs.copyFileSync(coreTarball, path.join(vendorDir, 'patreon-dl-3.9.0-speedfix.255.tgz'));
         fs.writeFileSync(`${appDir}/package.json`, JSON.stringify({
           dependencies: {
             "undici": "^6.21.3",
-            "patreon-dl": "^3.9.0"
+            "patreon-dl": "file:./vendor/patreon-dl-3.9.0-speedfix.255.tgz"
           }
         }, null, 2));
-        execSync('npm install --omit=dev', { cwd: appDir, stdio: 'inherit' });
+        execSync('npm install --omit=dev --allow-git=all', { cwd: appDir, stdio: 'inherit' });
+        const installedCore = JSON.parse(fs.readFileSync(path.join(appDir, 'node_modules/patreon-dl/package.json'), 'utf8'));
+        if (installedCore.version !== '3.9.0-speedfix.255') {
+          throw new Error(`Incorrect core packaged: ${installedCore.version}`);
+        }
+        console.info('[SpeedFix v2.5.3] Source-built patreon-dl core packaged successfully');
+        // === End SpeedFix v2.4.2 ===
         // Rebuild better-sqlite3 to prevent NODE_MODULE_VERSION mismatch
         execSync('npx electron-rebuild', { cwd: appDir, stdio: 'inherit' });
       }

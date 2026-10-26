@@ -127,6 +127,17 @@ export function AppMenuSupportMixin<TBase extends MainProcessConstructor>(
             ]
           },
           {
+            label: "&View",
+            submenu: [
+              {
+                label: "Show Download &Log",
+                accelerator: "CommandOrControl+Shift+L",
+                enabled: this.downloadLogAvailable,
+                click: () => this.showDownloadLog()
+              }
+            ]
+          },
+          {
             label: "&Help",
             submenu: [
               {

@@ -47,6 +47,8 @@ class MainProcessBase extends ProcessBase<"main"> {
   protected activeEditor: Editor | null;
   protected modifiedEditors: Editor[];
   protected downloader: DownloaderBundle | null;
+  // v2.5.4: the last downloader log remains available after closing the modal.
+  public downloadLogAvailable = false;
   protected defaultUserAgent: string;
   protected resolvedUserAgent: string;
   #cleanupCallbacks: (() => void)[];
@@ -70,6 +72,12 @@ class MainProcessBase extends ProcessBase<"main"> {
     this.downloader = null;
     this.defaultUserAgent = args.defaultUserAgent;
     this.#cleanupCallbacks = [];
+  }
+
+  public showDownloadLog() {
+    if (!this.downloadLogAvailable) return;
+    this.win.showModalView();
+    this.emitRendererEvent(this.win.modalView, "showDownloadLog");
   }
 
   protected setAppMenu(_options?: AppMenuOptions) {
